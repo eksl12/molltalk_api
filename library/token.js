@@ -1,8 +1,31 @@
 const jwt = require('jsonwebtoken')
-//ÅäÅ« µðÄÚµå
-exports.decode = (token, secretKey) => {
+const key = require('../config/jwt_config').secretKey
+//í† í° ì¸ì½”ë“œ
+exports.encode = (data, expire, subject) => {
 	return new Promise((resolve, reject) => {
-		jwt.verify(token, secretKey, (error, decoded) => {
+		jwt.sign(
+			data,
+			key,
+			{
+				expiresIn: expire,
+				issuer: 'zodaland.com',
+				subject: subject
+			}, (err, token) => {
+				if (err) {
+					reject(err)
+				}
+				resolve(token)
+			}
+		)
+	})	
+}
+//í† í° ë””ì½”ë“œ
+exports.decode = (token) => {
+	return new Promise((resolve, reject) => {
+		if (!token) {
+			reject({ message: 'no token' })
+		}
+		jwt.verify(token, key, (error, decoded) => {
 			if (error) {
 				reject(error)
 			}
@@ -10,16 +33,39 @@ exports.decode = (token, secretKey) => {
 		})
 	})
 }
-//request³»¿¡¼­ ÅäÅ«À» Ã£Àº µÚ ¸®ÅÏ
+//refreshTokenì„ ì°¾ì€ ë’¤ ë¦¬í„´
 //express : cookies, ws : headers['cookie']
-exports.get = (req) => {
+exports.getRefreshToken = (req) => {
 	let token = ''
 	if (req.cookies !== undefined) {
 		token = req.cookies.token
-	} else if (req.headers['cookie'] !== undefined) {
+	} else if (typeof req.headers['cookie'] !== 'undefined') {
 		const cookies = req.headers['cookie'].split('; ')
 		const cookie = cookies.find(e => e.indexOf('token=') === 0)
 		token = cookie.split('=')[1]
 	}
+	return token
+}
+
+//accessToken ì°¾ì•„ ë¦¬í„´
+//express : headers['authorization'], ws: req.url
+exports.getAccessToken = (req) => {
+	let token = ''
+	let temp = ''
+	const headers = req.headers
+	const pattern = /[0-9a-zA-Z-_.]+/
+
+	if (typeof req.headers['upgrade'] !== undefined && req.headers['upgrade'] === 'websocket') {
+		temp = req.url.substring(1)
+	} else if (typeof req.headers['authorization'] !== 'undefined') {
+		temp = req.headers['authorization'].split(' ')[1]
+	}
+
+	if (temp !== '') {
+		if (pattern.test(temp) && temp.length > 100) {
+			token = temp
+		}
+	}
+
 	return token
 }
