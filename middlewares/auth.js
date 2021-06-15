@@ -1,81 +1,156 @@
 const jwt = require('jsonwebtoken')
 const token = require('../library/token')
 const user = require('../models/user')
-const Error = require('../library/error')
+const Result = require('../library/result')
 const hash = require('../library/hash')
-
-const authMiddleware = async (req, res, next) => {
-	const refreshToken = token.get(req)
-	const authorization = req.headers['authorization']
+const Util = require('../library/util')
+/*
+const authMiddleware = async (req) => {
+	const refreshToken = token.getRefreshToken(req)
 	const ip = req.headers['x-real-ip']
-	let accessToken = authorization ? authorization.split(' ')[1] : ''
-
-	//preflight½Ã ¸Þ¼Òµå OPTIONS À¸·Î µé¾î¿À°í ¿¡·¯ Ã³¸®µÅ¼­ ¿¹¿ÜÃ³¸®
-	if (req.method === 'OPTIONS') {
-		return res.json()
-	}
-
+	let accessToken = token.getAccessToken(req)
+console.log(accessToken)
 	if (!refreshToken || !ip) {
-		return res.json({
-			code: 9999,
-			message: 'not exist auth data'
-		})
+		return
 	}
-	//accessTokenÀÌ ÀÖ´Ù¸é accessToken ¹ÝÈ¯
-	//¾ø°í refreshTokenÀÌÀÖ´Ù¸é accessTokenÀç¹ß±ÞÈÄ ¹ÝÈ¯
-
+	//accessTokenì´ ìžˆë‹¤ë©´ accessToken ë°˜í™˜
+	//ì—†ê³  refreshTokenì´ìžˆë‹¤ë©´ accessTokenìž¬ë°œê¸‰í›„ ë°˜í™˜
 	try {
-		if (!accessToken) {
-			const decrypt = await token.decode(refreshToken, req.app.get('jwt-secret'))
-			const userData = await user.getConnection(decrypt.no)
-							 .then(user.getUserData)
-			if (userData[0].ip !== hash.convert(ip)) {
-				throw new Error('AUTHENTICATION_FAILURE')
+		const decrypt = await token.decode(refreshToken)
+		const data = await user.getConnection(decrypt.no)
+						 .then(user.getUserData)
+
+		const userData = JSON.parse(JSON.stringify(data[0]))
+
+		if (userData.ip !== hash.convert(ip)) {
+			throw new Error('9703')
+		}
+
+		if (accessToken === '') {
+			const payLoad = {
+				id: userData.id,
+				name: userData.name
 			}
 
-			accessToken = await new Promise((resolve, reject) => {
-				jwt.sign(
-					{
-						no: userData[0].no,
-						id: userData[0].id,
-						name: userData[0].name
-					},
-					req.app.get('jwt-secret'),
-					{
-						expiresIn: '5m',
-						issuer: 'zodaland.com',
-						subject: 'userinfo'
-					}, (err, token) => {
-						if (err) {
-							reject(Error.get())
-						}
-						resolve(token)
-					}
-				)
-			})
+			accessToken = await token.encode(payLoad, '2000ms', 'userinfo')
 
 			req.token = accessToken
-			console.log(accessToken)
+		}
+		try {
+			req.decoded = await token.decode(accessToken)
+		} catch(error) {
+			//ë§Œë£Œëœ ê²½ìš° ìž¬ë°œê¸‰ ì²˜ë¦¬
+			if (error.message === 'jwt expired') {
+				accessToken = await token.encode(userData, '2000ms', 'userinfo')
+				req.token = accessToken
+				req.decoded = await token.decode(accessToken)
+			}
 		}
 	} catch(error) {
-		return res.status(403).json(Error.get(error))
+		console.log(error)
+		
+		return
 	}
-
-	const p = token.decode(accessToken, req.app.get('jwt-secret'))
-
-	const onError = (error) => {
-		res.status(403).json({
-			code: 9998,
-			message: error.message
-		})
-	}
-
-	p.then((decoded) => {
-		console.log(decoded.id + ' is passed auth\nreq.token : ' + req.token)
-		req.decoded = decoded
-		next()
-	})
-	.catch(onError)
+	return
 }
 
 module.exports = authMiddleware
+*/
+module.exports = (() => {
+	const getDecodedAccessTokenData = async (req) => {
+		const accessToken = token.getAccessToken(req)
+
+		try {
+			const decrypt = await token.decode(accessToken)
+
+			return Result.get('0000', decrypt)
+		} catch (error) {
+			const message = error.message
+			let code = '4000'
+
+			if (message === 'jwt expired') {
+				code = '9705'
+			} else if (message === 'no token') {
+				code = '9704'
+			} else {
+				console.log(error)
+			}
+
+			return Result.get(code)
+		}
+	}
+
+	const reIssueToken = async (no) => {
+		try {
+			const userInfo = await user.getConnection(no)
+				.then(user.getUserInfo)
+
+			const accessToken = await token.encode(userInfo, '2000ms', 'userInfo')
+
+			const data = {
+				accessToken: accessToken,
+				...userInfo
+			}
+
+			return Result.get('0000', data)
+		} catch (error) {
+			const message = error.message
+			const code = '4000'
+
+			if (message.length === 4) {
+				code = message
+			} else {
+				console.log(error)
+			}
+
+			return Result.get(code)
+		}
+	}
+
+	const checkRefreshToken = async (req) => {
+		const refreshToken = token.getRefreshToken(req)
+		const ip = req.headers['x-real-ip']
+
+		if (!refreshToken) {
+			return Result.get('0001')
+		}
+		if (!ip) {
+			return Result.get('9701')
+		}
+
+		try {
+			const decrypt = await token.decode(refreshToken)
+			const hashedIp = await user.getConnection(decrypt.no)
+							 .then(user.getIpByNo)
+			if (!hashedIp) {
+				throw new Error('9701')
+			}
+			if (hashedIp !== hash.convert(ip)) {
+				throw new Error('9702')
+			}
+
+			const data = {
+				no: decrypt.no
+			}
+			return Result.get('0000', data)
+		} catch(error) {
+			const message = error.message
+			let code = '4000'
+
+			if (message === 'jwt expired') {
+				code = '9703'
+			} else if (message.length === 4) {
+				code = message
+			} else {
+				console.log(error)
+			}
+			return Result.get(code)
+		}
+	}
+
+	return {
+		getDecodedAccessTokenData,
+		reIssueToken,
+		checkRefreshToken
+	}
+})()
