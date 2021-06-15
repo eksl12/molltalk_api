@@ -1,14 +1,14 @@
 {
-  "name": "node-app",
+  "name": "molltalk-api",
   "version": "1.0.0",
-  "description": "",
+  "description": "api",
   "main": "app.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "author": "zodaland",
+  "license": "zodaland.com",
   "dependencies": {
     "cookie-parser": "^1.4.5",
     "ejs": "^3.1.5",
