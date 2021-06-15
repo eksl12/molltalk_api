@@ -24,8 +24,8 @@ const User = {
 	},
 
 	create : (con) => {
-		return new Promise( (resolve, reject) => {
-			var sql = "INSERT INTO user (id, password, name, reg_date) VALUES (?, ?, ?, DATE_FORMAT(NOW(), '%Y%m%d%H%i%s'))";
+		return new Promise((resolve, reject) => {
+			var sql = "INSERT INTO user (id, password, name, reg_date) VALUES (?, ?, ?, DATE_FORMAT(NOW(), '%Y%m%d%H%i%s'))"
 			con.query(sql, User.params, (err, rows) => {
 				con.release()
 				if (err) {
@@ -37,8 +37,8 @@ const User = {
 	},
 
 	verify : (con) => {
-		return new Promise( (resolve, reject) => {
-			var sql = "SELECT no,id, name FROM user WHERE id = ? AND password = ?";
+		return new Promise((resolve, reject) => {
+			var sql = "SELECT no FROM user WHERE id = ? AND password = ?"
 			
 			con.query(sql, User.params, (err, rows) => {
 				con.release()
@@ -51,8 +51,8 @@ const User = {
 	},
 
 	findById : (con) => {
-		return new Promise( (resolve, reject) => {
-			var sql = "SELECT count(no) as count FROM user WHERE id = ?";
+		return new Promise((resolve, reject) => {
+			var sql = "SELECT count(no) as count FROM user WHERE id = ?"
 			
 			con.query(sql, User.params, (err, rows) => {
 				con.release()
@@ -65,8 +65,8 @@ const User = {
 	},
 
 	findByNo : (con) => {
-		return new Promise( (resolve, reject) => {
-			var sql = "SELECT count(no) as count FROM user WHERE no = ?";
+		return new Promise((resolve, reject) => {
+			var sql = "SELECT count(no) as count FROM user WHERE no = ?"
 			
 			con.query(sql, User.params, (err, rows) => {
 				con.release()
@@ -79,8 +79,8 @@ const User = {
 	},
 
 	getUserData : (con) => {
-		return new Promise( (resolve, reject) => {
-			var sql = "SELECT no, id, name, ip FROM user WHERE no = ?";
+		return new Promise((resolve, reject) => {
+			var sql = "SELECT no, id, name, ip FROM user WHERE no = ?"
 			
 			con.query(sql, User.params, (err, rows) => {
 				con.release()
@@ -92,9 +92,45 @@ const User = {
 		})
 	},
 
+	getUserInfo : (con) => {
+		return new Promise((resolve, reject) => {
+			var sql = "SELECT id, name FROM user WHERE no = ?"
+
+			con.query(sql, User.params, (err, rows) => {
+				con.release()
+				if (err) {
+					reject(err)
+				}
+				const row = rows[0]
+				const userInfo = {
+					id: row.id,
+					name : row.name
+				}
+
+				resolve(userInfo)
+			})
+		})
+	},
+
+	getIpByNo : (con) => {
+		return new Promise((resolve, reject) => {
+			var sql = "SELECT ip FROM user WHERE no = ?"
+
+			con.query(sql, User.params, (err, rows) => {
+				con.release()
+				if (err) {
+					reject(err)
+				}
+
+				const ip = rows[0].ip
+				resolve(ip)
+			})
+		})
+	},
+
 	getNoById : (con) => {
-		return new Promise( (resolve, reject) => {
-			var sql = "SELECT no FROM user WHERE id = ?";
+		return new Promise((resolve, reject) => {
+			var sql = "SELECT no FROM user WHERE id = ?"
 			
 			con.query(sql, User.params, (err, rows) => {
 				con.release()
@@ -108,7 +144,7 @@ const User = {
 
 	updateAuthData : (con) => {
 		return new Promise((resolve, reject) => {
-			var sql = "UPDATE user SET login_date = ?, ip = ? WHERE no = ?";
+			var sql = "UPDATE user SET login_date = ?, ip = ? WHERE no = ?"
 			
 			con.query(sql, User.params, (err, rows) => {
 				con.release()
