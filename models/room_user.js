@@ -16,7 +16,7 @@ const RoomUser = {
 
 	create: (con) => {
 		return new Promise((resolve, reject) => {
-			var sql = "INSERT INTO room_user (user_no, room_no, join_date) VALUES (?, ?, DATE_FORMAT(NOW(), '%Y%m%d%H%i%s'))"
+			var sql = "INSERT INTO room_user (user_no, room_no, join_date) VALUES (?, ?, ?)"
 			con.query(sql, RoomUser.params, (err, rows) => {
 				con.release()
 				if (err) {
@@ -49,6 +49,20 @@ const RoomUser = {
 					reject(err)
 				}
 				resolve(rows)
+			})
+		})
+	},
+
+	findDup: (con) => {
+		return new Promise((resolve, reject) => {
+			var sql = "SELECT COUNT(no) as count FROM room_user WHERE user_no = ? AND room_no = ?"
+			con.query(sql, RoomUser.params, (err, rows) => {
+				con.release()
+				if (err) {
+					reject(err)
+				}
+				const count = rows[0].count
+				resolve(count)
 			})
 		})
 	},

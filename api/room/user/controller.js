@@ -2,6 +2,7 @@ const roomUser = require('../../../models/room_user')
 const room = require('../../../models/room')
 const user = require('../../../models/user')
 const Error = require('../../../library/error')
+const Result = require('../../../library/result')
 
 const checkValidation = (param) => {
 	const checkRoom = (result) => {
@@ -14,9 +15,9 @@ const checkValidation = (param) => {
 		})
 	}
 
-	const checkUser = (result) => {
+	const checkUser = (count) => {
 		return new Promise((resolve,reject) => {
-			if (result[0].count === 0) {
+			if (count === 0) {
 				console.log('invalid user')
 				reject('FOUND_NO_DATA')
 			}
@@ -40,56 +41,68 @@ const checkValidation = (param) => {
 	.then(room.find)
 	.then(checkRoom)
 	.then(user.getConnection)
-	.then(user.findByNo)
+	.then(user.findById)
 	.then(checkUser)
 	.then(respond)
 	.catch(respondError)
 }
 
-exports.create = (req, res) => {
+exports.create = async (req, res) => {
 	const body = req.body
-	const userNo = body.userNo || req.decoded.no
-	console.log(userNo)
+	const userId = body.userId || req.decoded.id
+	const roomNo = body.roomNo
+
+	if (!userId || !roomNo) {
 		console.log(body)
-	
-	const checkValue = () => {
-		return new Promise((resolve, reject) => {
-			if (userNo === undefined || body.roomNo === undefined) {
-				reject('INVALID_VALUE')
-			}
-			resolve([ userNo, body.roomNo])
-		})
+		res.json(Result.get('9999'))
+		return
 	}
 
-	const confirmValidation = (result) => {
-		return new Promise((resolve, reject) => {
-			if (result.code !== '0000') {
-				reject(result)
-			}
-			resolve(result.data)
-		})
+	validResult = await checkValidation([userId, roomNo])
+
+	if (validResult.code !== '0000') {
+		res.json(Result.get('9999'))
+		return
 	}
 
-	const respond = (result) => {
-		res.json({
-			code: '0000',
-			data: result.affectedRows
-		})
-	}
+	try {
+		const userNo = await user.getConnection(userId)
+			.then(user.getNoById)
+		if (!userNo) {
+			throw '9999'
+		}
+		
+		const dupParams = [userNo, roomNo]
+		const dupRoomCount = await roomUser.getConnection(dupParams)
+			.then(roomUser.findDup)
 
-	const respondError = (error) => {
-		res
-		.status(409)
-		.json(Error.get(error))
-	}
+		if (dupRoomCount > 0) {
+			throw '9998'
+		}
 
-	checkValue()
-	.then(checkValidation)
-	.then(confirmValidation)
-	.then(roomUser.getConnection)
-	.then(roomUser.create)
-	.then(respond)
-	.catch(respondError)
+		const unixEpoch = Math.floor(new Date().getTime() / 1000)
+		const createParams = [userNo, roomNo, unixEpoch]
+
+		const returnData = await roomUser.getConnection(createParams)
+			.then(roomUser.create)
+
+		if (returnData.affectedRows !== 1) {
+			throw '9997'
+		}
+
+		res.json(Result.get('0000'))
+	} catch(error) {
+		const message = error.message
+		const code = '4000'
+
+		if (message.length === 4) {
+			code = message
+		} else {
+			console.log(error)
+		}
+
+		res.json(Result.get(code))
+	}
 }
 
 exports.findRoom = (req, res) => {
