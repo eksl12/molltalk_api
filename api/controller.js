@@ -14,12 +14,12 @@ exports.setDefault = (req, res, next) => {
 	//res.header('SameSite', 'None')
 	//res.header('withCredentials', 'true')
 
-	/*보안처리
-	if (req.headers['Referer'].indexOf('https://my.zodaland.com') !== 0) {
+
+	if (!req.headers['origin'] || req.headers['origin'].indexOf('https://mt.test.zodaland.com') !== 0) {
 		res.status('403').send('refused')
 		return
 	}
-	*/
+
 	//preflight시 메소드 OPTIONS 으로 들어오고 에러 처리돼서 예외처리
 	if (req.method === 'OPTIONS') {
 		console.log('options')
@@ -57,7 +57,6 @@ exports.confirmAuthorization = async (req, res, next) => {
 		res
 		.cookie('token', '', { expires: new Date(Date.now() - (360000)) })
 		.json(newAccessTokenResult)
-		console.log('새 엑세스 토큰 무효 짤림')
 		return
 	}
 	const decoded = {
@@ -70,13 +69,12 @@ exports.confirmAuthorization = async (req, res, next) => {
 	req.decoded = decoded
 	
 	next()
-	console.log('전체 통과')
 }
 
 exports.hello = async (req, res) => {
 	const refreshTokenResult = await Auth.checkRefreshToken(req)
 
-	if (refreshTokenResult.code !== '0000' && refreshTokenResult.code !== '0001') {
+	if (refreshTokenResult.code !== '0000' && refreshTokenResult.code !== '9700') {
 		res
 		.cookie('token', '', { expires: new Date(Date.now() - (360000)) })
 		.json(refreshTokenResult)
