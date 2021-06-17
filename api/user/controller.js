@@ -1,39 +1,36 @@
 const user = require('../../models/user')
 const Error = require('../../library/error')
+const Result = require('../../library/result')
 
-exports.findById = async (req, res) => {
+exports.findUser = async (req, res) => {
 	const params = req.params
 	const id = params.id
 	
-	console.log(req.decoded)
+	try {
+		if (id === undefined || id === req.decoded.id) {
+			res.json(Result.get('9999'))
+			return
+		}
+		const count = await user.getConnection(id)
+					   .then(user.findById)
 
-	if (id === undefined) {
-		res.json(Error.get('INVALID_VALUE'))
-		return
+		const data = {}
+
+		if (count > 0) {
+			data.id = id
+		}
+
+		res.json(Result.get('0000', data))
+	} catch(error) {
+		const message = error.message
+		const code = '4000'
+
+		if (message.length === 4) {
+			code = message
+		} else {
+			console.log(error)
+		}
+
+		res.json(Result.get(code))
 	}
-	//본인 아이디 검색시
-	if (id === req.decoded.id) {
-
-	}
-
-	const result = await user.getConnection(id)
-				   .then(user.findById)
-				   .catch((error) => {
-						res
-						.status(409)
-						.json(Error.get(error))
-					})
-
-					
-	const count = result[0].count
-
-	if (count < 1) {
-		res.json(Error.get('FOUND_NO_DATA'))
-		return
-	}
-
-	res.json({
-		code: '0000',
-		id: id
-	})
 }
