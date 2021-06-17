@@ -25,7 +25,7 @@ const User = {
 
 	create : (con) => {
 		return new Promise((resolve, reject) => {
-			var sql = "INSERT INTO user (id, password, name, reg_date) VALUES (?, ?, ?, DATE_FORMAT(NOW(), '%Y%m%d%H%i%s'))"
+			var sql = "INSERT INTO user (id, password, name, reg_date) VALUES (?, ?, ?, ?)"
 			con.query(sql, User.params, (err, rows) => {
 				con.release()
 				if (err) {
@@ -59,7 +59,8 @@ const User = {
 				if (err) {
 					reject(err)
 				}
-				resolve(rows)
+				const count = rows[0].count
+				resolve(count)
 			})
 		})
 	},
@@ -137,7 +138,8 @@ const User = {
 				if (err) {
 					reject(err)
 				}
-				resolve(rows)
+				const no = rows[0].no
+				resolve(no)
 			})
 		})
 	},

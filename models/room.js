@@ -16,7 +16,7 @@ const Room = {
 
 	create : (con) => {
 		return new Promise((resolve, reject) => {
-			var sql = "INSERT INTO room (reg_date, private) VALUES (DATE_FORMAT(NOW(), '%Y%m%d%H%i%s'), ?)";
+			var sql = "INSERT INTO room (reg_date, private) VALUES (?, ?)";
 			con.query(sql, Room.params, (err, rows) => {
 				con.release()
 				if (err) {
