@@ -18,15 +18,14 @@ exports.register = (req, res) => {
 		})
 	}
 
-	const checkDuplicateUser = (result) => {
-		var count = result[0].count
-
+	const checkDuplicateUser = (count) => {
 		return new Promise((resolve, reject) => {
 			if (count > 0) {
 				reject('DUP_VALUE')
 			} else {
 				const hashPassword = hash.convert(password)
-				const params = [ body.id, hashPassword, body.name]
+				const regDate = Math.floor(new Date().getTime / 1000)
+				const params = [ body.id, hashPassword, body.name, regDate]
 				resolve(params)
 			}
 		});
@@ -68,9 +67,7 @@ exports.login = (req, res) => {
 		})
 	}
 
-	const checkUser = (result) => {
-		var count = result[0].count
-
+	const checkUser = (count) => {
 		return new Promise((resolve, reject) => {
 			if (count === 0) {
 				reject('FOUND_NO_DATA')

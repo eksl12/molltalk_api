@@ -41,9 +41,9 @@ exports.create = (req, res) => {
 		})
 	}
 
-	const getUserNo = (result) => {
+	const getUserNo = (no) => {
 		return new Promise((resolve, reject) => {
-			const invitedUserNo = result[0].no
+			const invitedUserNo = no
 			if (!invitedUserNo) {
 				reject('FOUND_NO_DATA')
 			}
