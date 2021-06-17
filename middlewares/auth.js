@@ -112,7 +112,7 @@ module.exports = (() => {
 		const ip = req.headers['x-real-ip']
 
 		if (!refreshToken) {
-			return Result.get('0001')
+			return Result.get('9700')
 		}
 		if (!ip) {
 			return Result.get('9701')
